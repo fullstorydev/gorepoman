@@ -21,7 +21,7 @@ export GOPATH=`pwd`
 go get github.com/fullstorydev/gorepoman/...
 ls ./bin/gorepoman
 
-# now that we're bootstrapped, nuke the source we, and re-fetch gorepoman using gorepoman!
+# now that we're bootstrapped, nuke the source we fetched with `go get`, and re-fetch gorepoman using gorepoman!
 rm -rf src/github.com/pkg/errors github.com/fullstorydev/gorepoman
 ./bin/gorepoman fetch github.com/fullstorydev/gorepoman
 
