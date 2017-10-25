@@ -33,9 +33,13 @@ func PrintError(w io.Writer, err error) {
 	msgs, stack := deconstruct(err)
 	for i := range msgs {
 		if i > 0 {
-			fmt.Fprint(w, "\n...caused by ")
+			fmt.Fprint(w, "...caused by ")
 		}
-		fmt.Fprint(w, msgs[len(msgs)-i-1])
+		msg := msgs[len(msgs)-i-1]
+		if msg[len(msg)-1] != '\n' {
+			msg = msg + "\n"
+		}
+		fmt.Fprint(w,msg)
 	}
 	if stack != nil {
 		fmt.Fprintf(w, "%+v\n", stack)
