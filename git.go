@@ -112,7 +112,7 @@ func (g *Gitter) TreeHash(gitRev string, pkgPath string) (string, error) {
 	}
 }
 
-var lsRemoteRegex = regexp.MustCompile(`^([0-9a-f]+)\s+[^ ]*$`)
+var lsRemoteRegex = regexp.MustCompile(`^([0-9a-f]+)\s+\S+$`)
 
 // LsRemote returns the server-side commit SHA of the default branch (e.g. usually master) for
 // the given git remote url. Used for staleness checks.
