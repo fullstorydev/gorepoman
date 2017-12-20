@@ -49,16 +49,24 @@ type RepoList map[string]PackageData
 
 type PackageData struct {
 	GitRemote      string `json:"git-remote"`
+	TrackingBranch string `json:"git-remote-branch,omitempty"`
 	CurrentGitHash string `json:"current-version-git-hash"`
 	ContentHash    string `json:"content-hash"`
+}
+
+func (pd PackageData) TrackingRef() string {
+	if pd.TrackingBranch == "" {
+		return "HEAD"
+	}
+	return pd.TrackingBranch
 }
 
 func (manifest *RepoManifest) Repository(packageName string) PackageData {
 	return manifest.Repositories[packageName]
 }
 
-func (manifest *RepoManifest) SetRepository(packageName string, gitRemote string, gitHash string, contentHash string) {
-	manifest.Repositories[packageName] = PackageData{GitRemote: gitRemote, CurrentGitHash: gitHash, ContentHash: contentHash}
+func (manifest *RepoManifest) SetRepository(packageName string, gitRemote string, gitBranch string, gitHash string, contentHash string) {
+	manifest.Repositories[packageName] = PackageData{GitRemote: gitRemote, TrackingBranch: gitBranch, CurrentGitHash: gitHash, ContentHash: contentHash}
 }
 
 func (manifest *RepoManifest) HasRepository(packageName string) bool {
@@ -152,7 +160,12 @@ func (manifest *RepoManifest) PkgReconcile(pkgName string) error {
 
 	// Clone, but don't check out, since we'll copy in the content.
 	exportGit := TempGit(exportPath)
-	if _, err := exportGit.Command("clone", "--no-checkout", pkg.GitRemote, "."); err != nil {
+	params := []string{"clone", "--no-checkout"}
+	if pkg.TrackingBranch != "" {
+		params = append(params, "--branch", pkg.TrackingBranch)
+	}
+	params = append(params, pkg.GitRemote, ".")
+	if _, err := exportGit.Command(params...); err != nil {
 		return ErrWithMessagef(err, "failed to clone pkg %q from git remote %q", pkgName, pkg.GitRemote)
 	}
 
@@ -242,8 +255,20 @@ func (manifest *RepoManifest) PkgReconcileDone(pkgName string) error {
 	if err != nil {
 		return err
 	}
+	remoteBranch, err := exportGit.RemoteTrackingBranch() // Possibly update branch
+	if err != nil {
+		return err
+	}
+	if remoteBranch == "" {
+		// assume unchanged tracking branch
+		remoteBranch = pkg.TrackingBranch
+	}
 
-	remoteVersion, err := exportGit.LsRemote(remote)
+	lsBranch := remoteBranch
+	if lsBranch == "" {
+		lsBranch = pkg.TrackingRef()
+	}
+	remoteVersion, err := exportGit.LsRemote(remote, lsBranch)
 	if err != nil {
 		return err
 	}
@@ -285,7 +310,7 @@ func (manifest *RepoManifest) PkgReconcileDone(pkgName string) error {
 		return err
 	}
 
-	manifest.SetRepository(pkgName, pkg.GitRemote, mergeBase, mergeBaseContentHash)
+	manifest.SetRepository(pkgName, remote, remoteBranch, mergeBase, mergeBaseContentHash)
 	fmt.Println("Writing new package manifest")
 	if err := manifest.writeManifest(); err != nil {
 		return err
@@ -416,7 +441,7 @@ func (manifest *RepoManifest) PkgListStale() error {
 
 	git := BaseGit()
 	results := manifest.EachConcurrent(func(pkgName string, pkg PackageData) (string, error) {
-		remoteVersion, err := git.LsRemote(pkg.GitRemote)
+		remoteVersion, err := git.LsRemote(pkg.GitRemote, pkg.TrackingRef())
 		if err != nil {
 			return "", err
 		}
@@ -510,7 +535,7 @@ func (manifest *RepoManifest) packageStatus(pkgName string) (string, bool, error
 	}
 
 	// Now check for up-to-date ness.
-	remoteVersion, err := BaseGit().LsRemote(pkg.GitRemote)
+	remoteVersion, err := BaseGit().LsRemote(pkg.GitRemote, pkg.TrackingRef())
 	if err != nil {
 		return "", false, err
 	}
@@ -531,7 +556,7 @@ func (manifest *RepoManifest) packageStatus(pkgName string) (string, bool, error
 	if _, err := tmpGit.Command("init", "--bare"); err != nil {
 		return "", false, ErrWithMessagef(err, "could not initialize temp repo for package %q at %q", pkgName, tmpRepo)
 	}
-	if _, err := tmpGit.Command("fetch", pkg.GitRemote, "HEAD"); err != nil {
+	if _, err := tmpGit.Command("fetch", pkg.GitRemote, pkg.TrackingRef()); err != nil {
 		return "", false, err
 	}
 
@@ -659,11 +684,10 @@ func (manifest *RepoManifest) installPackages() error {
 
 			// We have made it this far without an error, theoretically everything succeeded, time to add the git hash
 			// to the map of packages
-			manifest.SetRepository(name, remote, newHash, contentHash)
+			manifest.SetRepository(name, remote, "", newHash, contentHash)
 			// Mark manifest for update
 			manifest.Stale = true
 			fmt.Printf("Successfuly installed package %s \n", name)
-
 		}
 	}
 

@@ -30,6 +30,9 @@ var (
 		"`directory` that contains the manifest file to manipulate. If not set,\n" +
 		"    	defaults to GOREPOMAN_ROOT environment variable. If that is not set\n" +
 		"    	either, then GOPATH/src will be used.")
+
+	// TODO: make a flag for specifying a branch name, to use with the 'update'
+	// command (maybe 'fetch' and 'reconcile' commands, too?)
 )
 
 // NOTES
