@@ -121,8 +121,7 @@ func execBinary(binary string, envVars []string, params ...string) (string, erro
 	cmd := exec.Command(binary, params...)
 	// Grab current environment variables
 	env := os.Environ()
-	// Prepend our environment variables so that they overwrite any that are already there
-	cmd.Env = append(envVars, env...)
+	cmd.Env = combineEnv(env, envVars)
 
 	cmdOut, err := cmd.CombinedOutput()
 	out := string(cmdOut)
