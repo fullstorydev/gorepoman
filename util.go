@@ -19,6 +19,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -134,4 +135,24 @@ func execBinary(binary string, envVars []string, params ...string) (string, erro
 		}
 	}
 	return out, nil
+}
+
+func combineEnv(orig, override []string) []string {
+	env := map[string]string{}
+	for _, e := range orig {
+		parts := strings.SplitN(e, "=", 2)
+		env[parts[0]] = parts[1]
+	}
+	for _, e := range override {
+		parts := strings.SplitN(e, "=", 2)
+		env[parts[0]] = parts[1]
+	}
+	ret := make([]string, len(env))
+	i := 0
+	for k, v := range env {
+		ret[i] = fmt.Sprintf("%s=%s", k, v)
+		i++
+	}
+	sort.Strings(ret)
+	return ret
 }
