@@ -687,7 +687,7 @@ func (manifest *RepoManifest) installPackages() error {
 			manifest.SetRepository(name, remote, "", newHash, contentHash)
 			// Mark manifest for update
 			manifest.Stale = true
-			fmt.Printf("Successfuly installed package %s \n", name)
+			fmt.Printf("Successfully installed package %s \n", name)
 		}
 	}
 
