@@ -712,7 +712,7 @@ func goGet(pkg string, tmpDir string) error {
 	_, err := execBinary("go", []string{"GOPATH=" + tmpDir}, "get", pkg)
 	if err != nil {
 		// If we downloaded the package, but couldn't find any gocode in the root
-		if strings.Contains(err.Error(), "no Go files in") || strings.Contains(err.Error(), "no buildable Go source files") {
+		if strings.Contains(err.Error(), "no Go files in") || strings.Contains(err.Error(), "no buildable Go source files") || strings.Contains(err.Error(), "build constraints exclude all Go files") {
 			fmt.Printf("No go source found in package root %s - probably a single repo that contains sub packages\n", pkg)
 			fmt.Println("The source was cloned successfully, should be fine")
 			return nil
