@@ -117,6 +117,9 @@ var lsRemoteRegex = regexp.MustCompile(`^([0-9a-f]+)\s+\S+$`)
 // LsRemote returns the server-side commit SHA of the default branch (e.g. usually master) for
 // the given git remote url. Used for staleness checks.
 func (g *Gitter) LsRemote(remoteUrl, branch string) (string, error) {
+	if branch != "HEAD" {
+		branch = "refs/heads/" + branch
+	}
 	out, err := g.Command("ls-remote", remoteUrl, branch)
 	if err != nil {
 		return "", err
